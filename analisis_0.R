@@ -1,6 +1,7 @@
 #libreria ####
 library(readr)
 library(tidyverse)
+library(ggplot2)
 
 #bases ####
 w_mean_depto_total_letra <- read_csv("w_mean_depto_total_letra.csv")
@@ -23,5 +24,10 @@ salario_total_promedio_descrip <- left_join(diccionario_cod_depto,w_mean_total_d
                                             c("id_provincia_indec","codigo_departamento_indec")) #Revisar. Sigue achicando.
 
 #analisis ####
+
+##Los 5 sectores de actividad con salarios más bajos, expresados en un gráfico de barras.####
+
+##Elija 4 sectores de actividad (los cuales se distinguen por la letra) o grupos de sectores ####
+#y visualice la evolución de los salarios a lo largo de los años disponibles. 
 
 
