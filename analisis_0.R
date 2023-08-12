@@ -10,7 +10,7 @@ diccionario_cod_depto <- read_csv('diccionario_cod_depto.csv')
 
 ##Agrego la descripcion de las letras####
 
-clase2_letra <- diccionario_clase2 %>% #Problemas para quedarme con una tabla de descripción de clae.
+clase2_letra <- diccionario_clase2 %>% #Problemas para quedarme con una tabla de descripción de clae con Pipe.
  select(letra,letra_desc)
 
 dicc_clase2_letra <- clase2_letra[!duplicated(clase2_letra$letra), ]
@@ -31,3 +31,5 @@ salario_total_promedio_descrip <- left_join(diccionario_cod_depto,w_mean_total_d
 #y visualice la evolución de los salarios a lo largo de los años disponibles. 
 
 
+dispersion_wmean <- ggplot(salario_total_promedio_descrip,aes(x=as.Date(salario_total_promedio_descrip$fecha, format= '%Y'),y= w_mean))+
+  geom_point()
