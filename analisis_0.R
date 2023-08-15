@@ -2,6 +2,7 @@
 library(readr)
 library(tidyverse)
 library(ggplot2)
+library(sf)
 
 #bases ####
 w_mean_depto_total_letra <- read_csv("w_mean_depto_total_letra.csv")
@@ -36,6 +37,14 @@ salario_total_promedio_descrip <- salario_total_promedio_descrip %>%
 
 #rm(w_mean_total_descletra)
 #analisis ####
+##Mapa coropletico con mayores salarios. ####
+deptos <- read_sf('departamento.json')
+
+deptos_sant <- deptos[!(deptos$in1 %in% c("94028", "94021")), ]
+
+ggplot(deptos_sant)+
+  geom_sf()
+
 
 ##Los 5 sectores de actividad con salarios más bajos, expresados en un gráfico de barras.####
 
@@ -94,3 +103,6 @@ sal_prom_nacional <- salario_total_promedio_descrip %>%
 ggsave('dispecion_4a.png', plot = dispersion_wmean_4, dpi = 300) #¿habria que agrupar a nivel pais?
 
 print(dispersion_wmean_4)
+
+
+
