@@ -17,11 +17,11 @@ dicc_clase2_letra <- clase2_letra[!duplicated(clase2_letra$letra), ]
   
 w_mean_total_descletra <- left_join(dicc_clase2_letra, w_mean_depto_total_letra,c("letra")) #tiene menos obs. Revisar.
 
-rm(w_mean_depto_total_letra)
+#rm(w_mean_depto_total_letra)
 
-rm(clase2_letra)
+#rm(clase2_letra)
 
-rm(diccionario_clase2)
+#rm(diccionario_clase2)
 ##Agrego descripcion depto y provincia.####
 
 salario_total_promedio_descrip <- left_join(diccionario_cod_depto,w_mean_total_descletra,
@@ -34,7 +34,7 @@ salario_total_promedio_descrip <- salario_total_promedio_descrip %>%
   
 
 
-rm(w_mean_total_descletra)
+#rm(w_mean_total_descletra)
 #analisis ####
 
 ##Los 5 sectores de actividad con salarios más bajos, expresados en un gráfico de barras.####
@@ -50,8 +50,6 @@ top5_salario_prom <- salario_total_promedio_descrip %>%
   arrange(desc(salario)) %>%
   head(5)
 
-alta_remu <- c('EXPLOTACION DE MINAS Y CANTERA',
-' SUMINISTRO DE ELECTRICIDAD, GAS, VAPOR Y AIRE ACONDICIONADO')
 
 ult5_salario_prom <- salario_total_promedio_descrip %>%
   filter( ano == '2022') %>% 
@@ -60,10 +58,7 @@ ult5_salario_prom <- salario_total_promedio_descrip %>%
   tail(5) %>% 
   arrange(salario)
 
-muestra <- c('EXPLOTACION DE MINAS Y CANTERA',
-               ' SUMINISTRO DE ELECTRICIDAD, GAS, VAPOR Y AIRE ACONDICIONADO',
-               'SERVICIOS INMOBILIARIOS',
-               'SERVICIOS DE ASOCIACIONES Y SERVICIOS PERSONALES')
+muestra <- c('B','D','L','S')
 
 
 dispersion_wmean <- ggplot(salario_total_promedio_descrip,
@@ -77,18 +72,25 @@ ggsave('dispersion_wmean.png',plot = dispersion_wmean,dpi = 300)
 #agrupo por actividad a nivel nacional. 
 
 sal_prom_nacional <- salario_total_promedio_descrip %>% 
-  filter( letra_desc == 'EXPLOTACION DE MINAS Y CANTERA'|
-          ' SUMINISTRO DE ELECTRICIDAD, GAS, VAPOR Y AIRE ACONDICIONADO'|
-          'SERVICIOS INMOBILIARIOS'|
-          'SERVICIOS DE ASOCIACIONES Y SERVICIOS PERSONALES' ) %>% 
+  subset(letra %in% muestra) %>%  
   group_by(fecha,letra_desc) %>% 
   summarise(salario = mean(w_mean))
 
-dispersion_wmean_4 <- ggplot(sal_prom_nacional,
-                             aes(x=as.Date(fecha,format= '%Y'),y= salario))+
-                                                  
-  geom_point()+
-  scale_y_log10(labels=scales::comma)
+  dispersion_wmean_4 <- ggplot(sal_prom_nacional,
+                             aes(x=fecha,y= salario, color = letra_desc))+
+    geom_point()+
+    scale_color_discrete(guide = guide_legend(nrow = 2))+
+    scale_y_log10(labels=scales::comma)+
+    geom_smooth(method = 'loess')+
+    theme(legend.position = "bottom")+
+    labs(title = "Evolucion de salarios", 
+         subtitle = "Reune las 2 actividades con mayor y con menor promedio anual del salario promedio.",
+         color = "Actividades", 
+         x = "Ano", 
+         y = "Salario")
+  
+  
 
 ggsave('dispecion_4a.png', plot = dispersion_wmean_4, dpi = 300) #¿habria que agrupar a nivel pais?
 
+print(dispersion_wmean_4)
