@@ -40,7 +40,14 @@ salario_total_promedio_descrip <- salario_total_promedio_descrip %>%
 ##Mapa coropletico con mayores salarios. ####
 deptos <- read_sf('departamento.json')
 
-deptos_sant <- deptos[!(deptos$in1 %in% c("94028", "94021")), ]
+deptos_sant <- deptos[!(deptos$in1 %in% c("94028", "94021")), ] 
+
+#lista de departamentos con salarios mayores de la media.
+  
+salario_mayor_depto <- salario_total_promedio_descrip %>% 
+  filter(fecha == '2022-12-01') %>% 
+  group_by(codigo_departamento_indec,nombre_departamento_indec) %>% 
+  summarise(sal_prom = mean(w_mean))
 
 ggplot(deptos_sant)+
   geom_sf()
