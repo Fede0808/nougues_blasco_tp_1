@@ -37,6 +37,7 @@ salario_total_promedio_descrip <- salario_total_promedio_descrip %>%
 
 #rm(w_mean_total_descletra)
 #analisis ####
+
 ##Mapa coropletico con mayores salarios. ####
 deptos <- read_sf('departamento.json')
 
@@ -46,12 +47,23 @@ deptos_sant <- deptos[!(deptos$in1 %in% c("94028", "94021")), ]
   
 salario_mayor_depto <- salario_total_promedio_descrip %>% 
   filter(fecha == '2022-12-01') %>% 
-  group_by(codigo_departamento_indec,nombre_departamento_indec) %>% 
+  group_by(codigo_departamento_indec) %>% 
   summarise(sal_prom = mean(w_mean))
 
-ggplot(deptos_sant)+
-  geom_sf()
+deptos_sant_salario <- merge(deptos_sant, salario_mayor_depto, 
+                     by.x = "in1", by.y = "codigo_departamento_indec", 
+                     all.x = TRUE)
 
+
+argentina_salario_depto <- ggplot() +
+    geom_sf(data = deptos_sant_salario, aes(fill = sal_prom/1000), color = NA) +
+  scale_fill_viridis_c() +
+  labs(title = "Promedio departamental de la media salarial",
+       subtitle = "Diciembre del 2022",
+       fill = "Media salarial en miles") + 
+  theme_void()
+
+print(argentina_salario_depto)
 
 ##Los 5 sectores de actividad con salarios más bajos, expresados en un gráfico de barras.####
 
