@@ -50,9 +50,22 @@ salario_mayor_depto <- salario_total_promedio_descrip %>%
   group_by(codigo_departamento_indec) %>% 
   summarise(sal_prom = mean(w_mean))
 
+deptos_sant <- deptos_sant %>%
+  mutate(in1 = as.double(in1))
+
+
 deptos_sant_salario <- merge(deptos_sant, salario_mayor_depto, 
                      by.x = "in1", by.y = "codigo_departamento_indec", 
                      all.x = TRUE)
+
+salario_mayor_depto %>% 
+  filter(codigo_departamento_indec == '02007')
+
+#control de departamentos sin valor
+
+revision <- deptos_sant_salario %>% 
+  select(in1,sal_prom) %>% 
+  filter(is.na(sal_prom))
 
 
 argentina_salario_depto <- ggplot() +
