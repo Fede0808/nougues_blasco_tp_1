@@ -1,0 +1,68 @@
+---
+title: "Salarios sector privado formal."
+author: "T. Nougues y F. Blasco"
+date: "2023-08-22"
+output: html_document
+---
+
+```{r librerias, include=FALSE}
+library(readr)
+library(tidyverse)
+library(ggplot2)
+library(sf)
+library(viridis)
+library(scales)
+library(lubridate)
+library(cowplot)
+library(ggtext)
+library(xfun)
+library(ggrepel)
+
+```
+
+
+```{r data, include=FALSE}
+w_mean_depto_total_letra <- read_csv('w_mean_depto_total_letra.csv')
+diccionario_clase2 <- read_csv('diccionario_clae2.csv')
+diccionario_cod_depto <- read_csv('diccionario_cod_depto.csv')
+```
+
+
+
+```{r analisis, echo=FALSE}
+clase2_letra <- diccionario_clase2 %>% 
+ select(letra,letra_desc)
+
+dicc_clase2_letra <- clase2_letra[!duplicated(clase2_letra$letra), ]
+  
+w_mean_total_descletra <- left_join(dicc_clase2_letra, w_mean_depto_total_letra,c("letra")) 
+
+salario_total_promedio_descrip <- left_join(diccionario_cod_depto,w_mean_total_descletra,                                      c("id_provincia_indec","codigo_departamento_indec")) 
+
+salario_total_promedio_descrip <- salario_total_promedio_descrip %>% 
+  mutate(ano =  format(fecha, '%Y'))%>%
+  filter(ano != '2023', w_mean > '0')  
+
+```
+Los 5 sectores de actividad con salarios más bajos, expresados en un gráfico de barras.
+```{r 5 sectores,echo=FALSE}
+base_filtrada_fecha <- base %>%
+  filter(fecha =="2023-04-01")
+
+tabla1 <- base_filtrada_fecha %>% #Entiendo que esta tabla es tabla_media_sector
+  select(letra, w_mean) %>% 
+  group_by(letra) %>% 
+  summarize(mean(w_mean))
+
+grafo_media_sector <- ggplot(tabla_media_sector, aes(x = letra, y = w_mean)) + #Error: object 'tabla_media_sector' not found
+  geom_col() +
+  scale_y_log10(labels=scales::comma) +
+  theme_minimal() +
+  labs(title = "Media salarial por sector de actividad", 
+       subtitle = "según datos de abril 2023",
+       x = "Sector de actividad", 
+       y = "Salario promedio")
+
+print(grafo_media_sector)
+```
+
