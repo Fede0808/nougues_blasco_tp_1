@@ -1,0 +1,201 @@
+---
+title: "Análisis de los salarios del sector privado formal (2014-2023)"
+author: "Tomás Nougués y Federico Blasco"
+date: "2023-08-22"
+output: html_document
+---
+
+Trabajo práctico 1 - DCSCyHD
+
+
+```{r librerias, include=FALSE}
+library(readr)
+library(tidyverse)
+library(ggplot2)
+library(sf)
+library(viridis)
+library(scales)
+library(lubridate)
+
+```
+
+```{r bases, include=FALSE}
+w_mean_depto_total_letra <- read_csv('w_mean_depto_total_letra.csv')
+diccionario_clase2 <- read_csv('diccionario_clae2.csv')
+diccionario_cod_depto <- read_csv('diccionario_cod_depto.csv')
+```
+
+
+```{r analisis, include=FALSE}
+clase2_letra <- diccionario_clase2 %>% 
+ select(letra,letra_desc)
+
+dicc_clase2_letra <- clase2_letra[!duplicated(clase2_letra$letra), ]
+  
+w_mean_total_descletra <- left_join(dicc_clase2_letra, w_mean_depto_total_letra,c("letra")) 
+
+salario_total_promedio_descrip <- left_join(diccionario_cod_depto,w_mean_total_descletra,                                      c("id_provincia_indec","codigo_departamento_indec")) 
+
+salario_total_promedio_descrip <- salario_total_promedio_descrip %>% 
+  mutate(ano =  format(fecha, '%Y'))%>%
+  filter(ano != '2023', w_mean > '0')  
+
+```
+
+# 1)	Los departamentos con mayores salarios, expresados en un mapa coroplético.
+```{r mapa, echo=FALSE, message=FALSE, warning=FALSE}
+
+deptos <- read_sf('departamento.json')
+
+deptos_sant <- deptos[!(deptos$in1 %in% c("94028", "94021")), ] 
+
+#lista de departamentos con salarios mayores de la media.
+  
+salario_mayor_depto <- salario_total_promedio_descrip %>% 
+  filter(fecha == '2022-12-01') %>% 
+  group_by(codigo_departamento_indec) %>% 
+  summarise(sal_prom = mean(w_mean))
+
+deptos_sant <- deptos_sant %>%
+  mutate(in1 = as.double(in1))
+
+
+deptos_sant_salario <- merge(deptos_sant, salario_mayor_depto, 
+                     by.x = "in1", by.y = "codigo_departamento_indec", 
+                     all.x = TRUE)
+
+salario_mayor_depto %>% 
+  filter(codigo_departamento_indec == '02007')
+
+#control de departamentos sin valor
+
+revision <- deptos_sant_salario %>% 
+  select(in1,sal_prom) %>% 
+  filter(is.na(sal_prom))
+
+
+argentina_salario_depto <- ggplot() +
+    geom_sf(data = deptos_sant_salario, aes(fill = sal_prom/1000), color = NA) +
+  scale_fill_viridis_c() +
+  labs(title = "Promedio departamental de la media salarial",
+       subtitle = "Diciembre del 2022",
+       fill = "Media salarial en miles") + 
+  theme_void()
+
+print(argentina_salario_depto)
+
+```
+
+
+El mapa coroplético muestra la distribución promedio del salario por departamento a nivel nacional, a diciembre de 2022. La Patagonía austral presenta los mayores niveles de salario, debido a la concentración de sectores de actividad con altas remuneraciones, vinculados a la explotación de recursos minerales y la producción de energía. Por el contrario, los niveles salariales más bajos se encuentran en las regiones Noroeste y Noreste argentino, dado el mayor desarrollo de sectores de actividad de baja calificación.
+
+
+# 2) Los 5 sectores de actividad con salarios más bajos, expresados en un gráfico de barras.
+```{r 5 sectores,echo=FALSE, message=FALSE, warning=FALSE}
+
+base_filtrada_fecha <- w_mean_total_descletra %>%
+  mutate(ano =  format(fecha, '%Y')) %>%
+  filter(ano == '2023')
+
+
+top_salarios_sector <- base_filtrada_fecha %>%
+  group_by(ano, letra_desc) %>%
+  summarise(salario = mean(w_mean)) %>%
+  arrange(desc(salario))
+
+
+tail_salarios_sector <- base_filtrada_fecha %>%
+  group_by(ano, letra)%>%
+  summarise(salario = mean(w_mean)) %>%
+  tail(5) %>% 
+  arrange(salario)
+
+muestra_sec <- c("R", "P", "S", "Q", "O")
+
+muestra_sectores <- base_filtrada_fecha %>%
+  subset((letra%in%muestra_sec)) %>%
+  group_by(letra, letra_desc) %>%
+  summarise(salario = mean(w_mean)) %>%
+  arrange(salario)
+
+
+grafico_barras <- ggplot(muestra_sectores, aes(x = salario, y = letra, color = letra_desc)) +
+  geom_col() +
+  scale_x_log10(labels = comma) +
+  scale_color_discrete(guide = guide_legend(nrow = 3)) +
+  theme(legend.position = "bottom",
+        legend.text = element_text(size = 5),
+        legend.key.size = unit(0.5, "cm")) +
+  labs(title = "Salario promedio por sector de actividad", 
+       subtitle = "datos 2023",
+       x = "Salario promedio", 
+       y = "Sector de actividad",
+       color= "Actividad")
+
+print(grafico_barras)
+
+ggsave('barras_salario_sector.png', plot = grafico_barras, dpi = 300)
+
+```
+
+
+Los cinco sectores de actividad con menor salario promedio a nivel nacional en el 2023, son, respectivamente: Servicios artísticos, culturales, deportivos y de esparcimiento; Enseñanza; Servicios de asociaciones y servicios personales; Salud humana y servicios sociales; Administración pública, defensa y seguridad social obligatoria.
+
+# 3)	Elija 4 sectores de actividad (los cuales se distinguen por la letra) o grupos de sectores y visualice la evolución de los salarios a lo largo de los años disponibles.
+
+```{r Evolucion salario,echo=FALSE, message=FALSE, warning=FALSE}
+
+top5_salario_prom <- salario_total_promedio_descrip %>%
+  group_by(ano,letra_desc) %>%
+  summarise(salario = mean(w_mean)) %>%
+  arrange(desc(salario)) %>%
+  head(5)
+
+
+ult5_salario_prom <- salario_total_promedio_descrip %>%
+  filter( ano == '2022') %>% 
+  group_by(ano,letra_desc) %>%
+  summarise(salario = mean(w_mean)) %>%
+  tail(5) %>% 
+  arrange(salario)
+
+muestra <- c('B','D','L','S')
+
+
+dispersion_wmean <- ggplot(salario_total_promedio_descrip,
+                           aes(x=as.Date(fecha,
+                                             format= '%Y'),y= w_mean))+
+  geom_point()+
+  scale_y_log10(labels=scales::comma)
+
+ggsave('dispersion_wmean.png',plot = dispersion_wmean,dpi = 300)
+
+#agrupo por actividad a nivel nacional. 
+
+sal_prom_nacional <- salario_total_promedio_descrip %>% 
+  subset(letra %in% muestra) %>%  
+  group_by(fecha,letra_desc) %>% 
+  summarise(salario = mean(w_mean))
+
+  dispersion_wmean_4 <- ggplot(sal_prom_nacional,
+                             aes(x=fecha,y= salario, color = letra_desc))+
+    geom_point()+
+    scale_color_discrete(guide = guide_legend(nrow = 2))+
+    scale_y_log10(labels=scales::comma)+
+    geom_smooth(method = 'loess')+
+    theme(legend.position = "bottom")+
+    labs(title = "Evolucion de salarios", 
+         subtitle = "Reune las 2 actividades con mayor y con menor promedio anual del salario promedio.",
+         color = "Actividades", 
+         x = "Año", 
+         y = "Salario")
+  
+  
+
+ggsave('dispecion_4a.png', plot = dispersion_wmean_4, dpi = 300) #¿habria que agrupar a nivel pais?
+
+print(dispersion_wmean_4)
+```
+
+
+El gráfico muestra la evolución de la media salarial de los dos sectores de actividad con menor y mayor nivel salarial de la base de datos para el período 2014-2023. Las curvas ilustran la tendencia al alza nominal de los salarios, con comportamientos similares que mantienen la brecha a nivlees prácticamente constantes.
